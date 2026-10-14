@@ -177,12 +177,12 @@ clean_df['GlucoseCategory'] = pd.cut( clean_df['Glucose'],
                                     right=False)
 
 
-# Calculate diabetes_prevalence by age_group
+#diabetes_prevalence by age_group
 age_prevalence =(
     clean_df.groupby('AgeGroup',observed='True')['Outcome'].mean()*100
 )
 print(age_prevalence.round(1))
-#calculate diabetes_prevalence by BMI
+#diabetes_prevalence by BMI
 BMI_prevalence= (
     clean_df.groupby('BMICategory', observed='True')['Outcome'].mean()*100
 )
@@ -194,7 +194,7 @@ Glu_prevalence=(
 )
 print(Glu_prevalence.round(1))
 
-# %% 07b. PREVALENCE BY GROUP
+#PREVALENCE BY GROUP
 def plot_prevalence(group_col, title, filename):
     # Step 1: count patients and calculate % with diabetes in each group
     summary = clean_df.groupby(group_col, observed=True)["Outcome"].agg(
@@ -224,16 +224,15 @@ plot_prevalence("BMICategory", "Diabetes prevalence by BMI category", "fig05_pre
 plot_prevalence("GlucoseCategory", "Diabetes prevalence by glucose category", "fig06_prevalence_glucose.png")
 
 
-# %% 07. EXPLORATORY DATA ANALYSIS
-
+# EXPLORATORY DATA ANALYSIS
 # Readable labels for charts (instead of 0 and 1)
 observed_df["Diagnosis"] = observed_df["Outcome"].map({0: "No diabetes", 1: "Diabetes"})
 order = ["No diabetes", "Diabetes"]
 
 
-# ---- Part 1: distribution of each variable on its own ----
+#distribution of each variable on its own 
 def plot_distribution(col, filename):
-    """Histogram of one variable for all patients."""
+#Histogram of one variable for all patients.
     fig, ax = plt.subplots(figsize=(7, 5))
     sns.histplot(observed_df[col], kde=True, ax=ax)
     ax.set_title(f"Distribution of {col}")
@@ -248,18 +247,18 @@ plot_distribution("BMI", "fig10_bmi_distribution.png")
 plot_distribution("BloodPressure", "fig11_bloodpressure_distribution.png")
 
 
-# ----compare diabetic and non-diabetic patients ----
+# compare diabetic and non-diabetic patients
 def compare_by_outcome(col, filename):
-#-----Boxplot and histogram of one variable, split by diabetes status----
-#-----Also prints summary statistics for each group-----
+# Boxplot and histogram of one variable, split by diabetes status
+#Also prints summary statistics for each group
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
-    # Left panel: boxplot (compares the middle, spread and outliers)
+# Left panel: boxplot (compares the middle, spread and outliers)
     sns.boxplot(data=observed_df, x="Diagnosis", y=col, order=order, ax=axes[0])
     axes[0].set_title(f"{col} by diabetes status")
     axes[0].set_xlabel("")
 
-    # Right panel: overlapping histograms (compares the whole shape)
+# Right panel: overlapping histograms (compares the whole shape)
     sns.histplot(data=observed_df, x=col, hue="Diagnosis", hue_order=order,
                  kde=True, stat="density", common_norm=False, ax=axes[1])
     axes[1].set_title(f"{col} distribution by diabetes status")
@@ -278,17 +277,17 @@ compare_by_outcome("BloodPressure", "fig15_bloodpressure_vs_diabetes.png")
 compare_by_outcome("Insulin", "fig16_insulin_vs_diabetes.png")
 compare_by_outcome("Pregnancies", "fig17_pregnancies_vs_diabetes.png")
 
-# %% 08. CORRELATION ANALYSIS
-  # numeric_cols = the 8 predictors
+# CORRELATION ANALYSIS
+# numeric_cols = the 8 predictors
 numeric_cols = ["Pregnancies", "Glucose", "BloodPressure", "SkinThickness",
                 "Insulin", "BMI", "DiabetesPedigreeFunction", "Age"]
 corr_cols = numeric_cols + ["Outcome"]     
 
-# ----correlation matrices (Pearson and Spearman) ----
+# correlation matrices (Pearson and Spearman) ----
 corr_pearson = observed_df[corr_cols].corr(method="pearson")
 corr_spearman = observed_df[corr_cols].corr(method="spearman")
 
-# --- heatmap (required figure) ----
+#heatmap (required figure)
 fig, ax = plt.subplots(figsize=(10, 8))
 sns.heatmap(corr_pearson, annot=True, fmt=".2f", cmap="coolwarm",
             vmin=-1, vmax=1, center=0, linewidths=0.5, ax=ax)
@@ -296,7 +295,7 @@ ax.set_title("Correlation matrix (Pearson, observed values only)")
 plt.tight_layout()
 save_figure(fig, "fig18_correlation_heatmap.png")
 
-# -- which variables are most associated with Outcome? ----
+#which variables are most associated with Outcome? ----
 outcome_corr = pd.DataFrame({
     "pearson": corr_pearson["Outcome"],
     "spearman": corr_spearman["Outcome"],
@@ -305,8 +304,9 @@ outcome_corr = outcome_corr.sort_values("pearson", ascending=False).round(2)
 print("Correlation with Outcome (strongest first):")
 print(outcome_corr)
 
-# ----Strongest and weakest relationships BETWEEN predictors ----
+#Strongest and weakest relationships BETWEEN predictors 
 pred_corr = corr_pearson.loc[numeric_cols, numeric_cols]
+
 # keep each pair once (upper triangle only, excluding the diagonal)
 upper = pred_corr.where(np.triu(np.ones(pred_corr.shape, dtype=bool), k=1))
 pairs = upper.stack().dropna().sort_values(key=abs, ascending=False).round(2)
@@ -323,8 +323,8 @@ def format_p(p):
 
 
 def compare_two_groups(col):
-    """Welch t-test and Mann-Whitney U for one numeric variable,
-    comparing diabetes (Outcome = 1) with no diabetes (Outcome = 0)."""
+#Welch t-test and Mann-Whitney U for one numeric variable,
+#comparing diabetes (Outcome = 1) with no diabetes (Outcome = 0)."""
     diabetic = observed_df.loc[observed_df["Outcome"] == 1, col].dropna()
     healthy = observed_df.loc[observed_df["Outcome"] == 0, col].dropna()
 
@@ -335,18 +335,18 @@ def compare_two_groups(col):
     print(f"skewness (0 = symmetric): diabetes = {diabetic.skew():.2f}, "
           f"no diabetes = {healthy.skew():.2f}")
 
-    # Welch's t-test: compares means, does not assume equal spread
+# Welch's t-test: compares means, does not assume equal spread
     t_stat, p_t = stats.ttest_ind(diabetic, healthy, equal_var=False)
 
-    # Effect size for the t-test: Cohen's d (difference in standard deviations)
+ # Effect size for the t-test: Cohen's d (difference in standard deviations)
     pooled_sd = np.sqrt((diabetic.var(ddof=1) + healthy.var(ddof=1)) / 2)
     cohens_d = (diabetic.mean() - healthy.mean()) / pooled_sd
 
-    # Mann-Whitney U: compares the ranking of values, robust to skew
+# Mann-Whitney U: compares the ranking of values, robust to skew
     u_stat, p_u = stats.mannwhitneyu(diabetic, healthy, alternative="two-sided")
 
-    # Effect size for Mann-Whitney: probability that a randomly chosen diabetic
-    # patient has a HIGHER value than a randomly chosen non-diabetic patient
+# Effect size for Mann-Whitney: probability that a randomly chosen diabetic
+# patient has a HIGHER value than a randomly chosen non-diabetic patient
     prob_superiority = u_stat / (len(diabetic) * len(healthy))
 
     print(f"\nWelch t-test:   t = {t_stat:.2f}, p = {format_p(p_t)}, Cohen's d = {cohens_d:.2f}")
@@ -376,4 +376,4 @@ print(f"\nSmallest expected count: {expected.min():.1f}  (should be at least 5)"
 # Effect size for chi-square: Cramer's V (0 = no association, 1 = perfect)
 n_total = contingency.to_numpy().sum()
 cramers_v = np.sqrt(chi2 / (n_total * (min(contingency.shape) - 1)))
-print(f"\nChi-square = {chi2:.2f}, df = {dof}, p = {format_p(p_chi)}, Cramer's V = {cramers_v:.2f}")
+print(f"\nChi-square = {chi2:.2f}, df = {dof}, p = {format_p(p_chi)}, Cramer's V = {cramers_v:.2f}") 
